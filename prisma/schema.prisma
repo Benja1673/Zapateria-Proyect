@@ -1,0 +1,261 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlserver"
+  url      = env("DATABASE_URL")
+}
+
+// Modelo de Usuario
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String?
+  password  String
+  phone     String?
+  address   String?
+  city      String?
+  region    String?
+  zipCode   String?
+  role      String   @default("CUSTOMER") // CUSTOMER, ADMIN, SUPER_ADMIN
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relaciones
+  orders    Order[]
+  reviews   Review[]
+  favorites Favorite[]
+  cartItems CartItem[]
+
+  @@map("users")
+}
+
+// Modelo de Categoría
+model Category {
+  id          String    @id @default(cuid())
+  name        String    @unique // "HOMBRE", "MUJER", "INFANTIL"
+  slug        String    @unique
+  description String?
+  imageUrl    String?
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  // Relaciones
+  products Product[]
+
+  @@map("categories")
+}
+
+// Modelo de Marca
+model Brand {
+  id          String    @id @default(cuid())
+  name        String    @unique
+  slug        String    @unique
+  description String?
+  logoUrl     String?
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  // Relaciones
+  products Product[]
+
+  @@map("brands")
+}
+
+// Modelo de Producto
+model Product {
+  id          String        @id @default(cuid())
+  name        String
+  slug        String        @unique
+  description String?
+  price       Decimal       @db.Decimal(10, 2)
+  originalPrice Decimal?    @db.Decimal(10, 2)
+  discount    Int?          // Porcentaje de descuento
+  sku         String        @unique
+  stock       Int           @default(0)
+  isActive    Boolean       @default(true)
+  isFeatured  Boolean       @default(false)
+  rating      Decimal?      @db.Decimal(3, 2) // Rating promedio
+  reviewCount Int           @default(0)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  // Relaciones
+  categoryId  String
+  category    Category      @relation(fields: [categoryId], references: [id])
+  brandId     String
+  brand       Brand         @relation(fields: [brandId], references: [id])
+  
+  images      ProductImage[]
+  colors      ProductColor[]
+  sizes       ProductSize[]
+  reviews     Review[]
+  favorites   Favorite[]
+  cartItems   CartItem[]
+  orderItems  OrderItem[]
+
+  @@map("products")
+}
+
+// Modelo de Imagen de Producto
+model ProductImage {
+  id        String   @id @default(cuid())
+  url       String
+  altText   String?
+  isPrimary Boolean  @default(false)
+  order     Int      @default(0)
+  createdAt DateTime @default(now())
+
+  // Relaciones
+  productId String
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@map("product_images")
+}
+
+// Modelo de Color de Producto
+model ProductColor {
+  id       String @id @default(cuid())
+  name     String // "Negro", "Café", "Azul", etc.
+  hexCode  String // Código hexadecimal del color
+  imageUrl String? // Imagen específica para este color
+
+  // Relaciones
+  productId String
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@map("product_colors")
+}
+
+// Modelo de Talla de Producto
+model ProductSize {
+  id       String @id @default(cuid())
+  size     String // "38", "39", "40", etc.
+  stock    Int    @default(0)
+  isActive Boolean @default(true)
+
+  // Relaciones
+  productId String
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@map("product_sizes")
+}
+
+// Modelo de Reseña
+model Review {
+  id        String   @id @default(cuid())
+  rating    Int      // 1-5 estrellas
+  title     String?
+  comment   String?
+  isVerified Boolean @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relaciones
+  userId    String
+  user      User    @relation(fields: [userId], references: [id])
+  productId String
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, productId]) // Un usuario solo puede reseñar un producto una vez
+  @@map("reviews")
+}
+
+// Modelo de Favoritos
+model Favorite {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+
+  // Relaciones
+  userId    String
+  user      User    @relation(fields: [userId], references: [id])
+  productId String
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, productId])
+  @@map("favorites")
+}
+
+// Modelo de Carrito de Compras
+model CartItem {
+  id       String @id @default(cuid())
+  quantity Int    @default(1)
+  size     String? // Talla seleccionada
+  color    String? // Color seleccionado
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relaciones
+  userId    String
+  user      User    @relation(fields: [userId], references: [id])
+  productId String
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, productId, size, color])
+  @@map("cart_items")
+}
+
+// Modelo de Orden/Pedido
+model Order {
+  id            String      @id @default(cuid())
+  orderNumber   String      @unique
+  status        String      @default("PENDING") // PENDING, CONFIRMED, PROCESSING, SHIPPED, DELIVERED, CANCELLED, REFUNDED
+  total         Decimal     @db.Decimal(10, 2)
+  subtotal      Decimal     @db.Decimal(10, 2)
+  shipping      Decimal     @db.Decimal(10, 2) @default(0)
+  tax           Decimal     @db.Decimal(10, 2) @default(0)
+  discount      Decimal     @db.Decimal(10, 2) @default(0)
+  
+  // Información de envío
+  shippingName    String
+  shippingEmail   String
+  shippingPhone   String
+  shippingAddress String
+  shippingCity    String
+  shippingRegion  String
+  shippingZipCode String
+  
+  // Información de facturación
+  billingName     String?
+  billingAddress  String?
+  billingCity     String?
+  billingRegion   String?
+  billingZipCode  String?
+  
+  paymentMethod   String? // CREDIT_CARD, DEBIT_CARD, BANK_TRANSFER, CASH_ON_DELIVERY, WEBPAY, MERCADOPAGO
+  paymentStatus   String @default("PENDING") // PENDING, PAID, FAILED, REFUNDED
+  notes           String?
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relaciones
+  userId     String
+  user       User        @relation(fields: [userId], references: [id])
+  orderItems OrderItem[]
+
+  @@map("orders")
+}
+
+// Modelo de Item de Orden
+model OrderItem {
+  id       String  @id @default(cuid())
+  quantity Int
+  price    Decimal @db.Decimal(10, 2) // Precio al momento de la compra
+  size     String?
+  color    String?
+
+  // Relaciones
+  orderId   String
+  order     Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId String
+  product   Product @relation(fields: [productId], references: [id])
+
+  @@map("order_items")
+}
