@@ -36,11 +36,23 @@ export default function ProductCard({ product, userId }: ProductCardProps) {
   const handleToggleFavorite = async () => {
     setIsTogglingFavorite(true)
     try {
+      let message = ""
       if (isFavorite(product.id)) {
         await removeFromFavorites(product.id)
+        message = "Producto eliminado de favoritos"
       } else {
         await addToFavorites(product.id)
+        message = "¡Producto agregado a favoritos!"
       }
+
+      // Mostrar notificación
+      const notification = document.createElement("div")
+      notification.className = "fixed top-4 right-4 bg-pink-500 text-white px-4 py-2 rounded-lg shadow-lg z-50"
+      notification.textContent = message
+      document.body.appendChild(notification)
+      setTimeout(() => {
+        document.body.removeChild(notification)
+      }, 3000)
     } finally {
       setIsTogglingFavorite(false)
     }
@@ -51,7 +63,6 @@ export default function ProductCard({ product, userId }: ProductCardProps) {
     try {
       const success = await addToCart(product.id)
       if (success) {
-        // Mostrar notificación de éxito
         const notification = document.createElement("div")
         notification.className = "fixed top-4 right-4 bg-green-500 text-white px-4 py-2 rounded-lg shadow-lg z-50"
         notification.textContent = "¡Producto agregado al carrito!"

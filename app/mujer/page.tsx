@@ -1,12 +1,18 @@
 "use client"
-import { ChevronDown } from "lucide-react"
+import { useState } from "react"
+import { Filter } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import Navigation from "@/components/navigation"
 import Header from "@/components/header"
 import ProductCard from "@/components/product-card"
+import FiltersSidebar from "@/components/filters-sidebar"
+import SearchBar from "@/components/search-bar"
+import SortDropdown from "@/components/sort-dropdown"
+import { useFilters } from "@/hooks/useFilters"
 
 export default function MujerPage() {
   const userId = "user_demo_123"
+  const [showFilters, setShowFilters] = useState(false)
 
   const products = [
     {
@@ -20,6 +26,7 @@ export default function MujerPage() {
       colors: ["vino", "negro"],
       rating: 4.6,
       reviews: 12,
+      brand: "Modare",
     },
     {
       id: "mujer_2",
@@ -32,6 +39,7 @@ export default function MujerPage() {
       colors: ["negro"],
       rating: 4.3,
       reviews: 8,
+      brand: "Piccadilly",
     },
     {
       id: "mujer_3",
@@ -44,6 +52,7 @@ export default function MujerPage() {
       colors: ["negro", "café"],
       rating: 4.7,
       reviews: 15,
+      brand: "Bata",
     },
     {
       id: "mujer_4",
@@ -56,6 +65,7 @@ export default function MujerPage() {
       colors: ["azul", "blanco"],
       rating: 4.8,
       reviews: 22,
+      brand: "Adidas",
     },
     {
       id: "mujer_5",
@@ -68,6 +78,7 @@ export default function MujerPage() {
       colors: ["azul", "gris"],
       rating: 4.5,
       reviews: 10,
+      brand: "Columbia",
     },
     {
       id: "mujer_6",
@@ -80,6 +91,7 @@ export default function MujerPage() {
       colors: ["blanco", "gris"],
       rating: 4.9,
       reviews: 28,
+      brand: "Adidas",
     },
     {
       id: "mujer_7",
@@ -92,6 +104,7 @@ export default function MujerPage() {
       colors: ["vino", "negro"],
       rating: 4.5,
       reviews: 16,
+      brand: "Clarks",
     },
     {
       id: "mujer_8",
@@ -104,6 +117,7 @@ export default function MujerPage() {
       colors: ["negro"],
       rating: 4.8,
       reviews: 21,
+      brand: "Dr. Martens",
     },
     {
       id: "mujer_9",
@@ -116,6 +130,7 @@ export default function MujerPage() {
       colors: ["negro", "gris"],
       rating: 4.7,
       reviews: 13,
+      brand: "Sorel",
     },
     {
       id: "mujer_10",
@@ -128,8 +143,12 @@ export default function MujerPage() {
       colors: ["camel", "beige"],
       rating: 4.9,
       reviews: 35,
+      brand: "UGG",
     },
   ]
+
+  const { filters, filteredProducts, availableBrands, availableTypes, updateFilters, clearFilters, totalResults } =
+    useFilters(products)
 
   return (
     <div className="min-h-screen bg-white">
@@ -148,26 +167,109 @@ export default function MujerPage() {
         </div>
       </div>
 
-      {/* Breadcrumb and Filters */}
+      {/* Search and Filters Bar */}
       <div className="bg-gray-50 border-b">
         <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-end">
-            <Button variant="outline" size="sm" className="bg-white">
-              🔄 Ordenar por: Más relevantes
-              <ChevronDown className="h-4 w-4 ml-2" />
-            </Button>
+          <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
+            <div className="flex items-center gap-4 w-full md:w-auto">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowFilters(!showFilters)}
+                className="bg-white md:hidden"
+              >
+                <Filter className="h-4 w-4 mr-2" />
+                Filtros
+              </Button>
+              <div className="flex-1 md:w-96">
+                <SearchBar
+                  searchTerm={filters.searchTerm}
+                  onSearchChange={(term) => updateFilters({ searchTerm: term })}
+                  placeholder="Buscar calzado para mujer..."
+                />
+              </div>
+            </div>
+            <SortDropdown sortBy={filters.sortBy} onSortChange={(sortBy) => updateFilters({ sortBy: sortBy as any })} />
           </div>
         </div>
       </div>
 
-      {/* Products Grid */}
-      <main className="container mx-auto px-4 py-8">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
-          {products.map((product) => (
-            <ProductCard key={product.id} product={product} userId={userId} />
-          ))}
+      {/* Main Content */}
+      <div className="flex">
+        {/* Desktop Filters Sidebar */}
+        <div className={`hidden md:block ${showFilters ? "block" : "hidden"}`}>
+          <FiltersSidebar
+            availableBrands={availableBrands}
+            availableTypes={availableTypes}
+            selectedBrands={filters.selectedBrands}
+            selectedTypes={filters.selectedTypes}
+            priceRange={filters.priceRange}
+            onBrandChange={(brands) => updateFilters({ selectedBrands: brands })}
+            onTypeChange={(types) => updateFilters({ selectedTypes: types })}
+            onPriceRangeChange={(range) => updateFilters({ priceRange: range })}
+            onClearFilters={clearFilters}
+            totalResults={totalResults}
+          />
         </div>
-      </main>
+
+        {/* Mobile Filters Overlay */}
+        {showFilters && (
+          <div className="fixed inset-0 z-50 md:hidden">
+            <div className="absolute inset-0 bg-black bg-opacity-50" onClick={() => setShowFilters(false)} />
+            <div className="absolute left-0 top-0 h-full bg-white w-80 shadow-lg">
+              <div className="p-4 border-b">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-lg font-semibold">Filtros</h2>
+                  <Button variant="ghost" size="sm" onClick={() => setShowFilters(false)}>
+                    ✕
+                  </Button>
+                </div>
+              </div>
+              <FiltersSidebar
+                availableBrands={availableBrands}
+                availableTypes={availableTypes}
+                selectedBrands={filters.selectedBrands}
+                selectedTypes={filters.selectedTypes}
+                priceRange={filters.priceRange}
+                onBrandChange={(brands) => updateFilters({ selectedBrands: brands })}
+                onTypeChange={(types) => updateFilters({ selectedTypes: types })}
+                onPriceRangeChange={(range) => updateFilters({ priceRange: range })}
+                onClearFilters={clearFilters}
+                totalResults={totalResults}
+              />
+            </div>
+          </div>
+        )}
+
+        {/* Products Grid */}
+        <main className="flex-1 container mx-auto px-4 py-8">
+          {filteredProducts.length === 0 ? (
+            <div className="text-center py-16">
+              <div className="text-6xl mb-4">🔍</div>
+              <h2 className="text-2xl font-semibold text-gray-900 mb-2">No se encontraron productos</h2>
+              <p className="text-gray-600 mb-6">Intenta ajustar tus filtros o términos de búsqueda</p>
+              <Button onClick={clearFilters} className="bg-red-600 hover:bg-red-700">
+                Limpiar Filtros
+              </Button>
+            </div>
+          ) : (
+            <>
+              <div className="mb-6">
+                <h1 className="text-2xl font-bold text-gray-900 mb-2">Calzado para Mujer</h1>
+                <p className="text-gray-600">
+                  {totalResults} producto{totalResults !== 1 ? "s" : ""} encontrado{totalResults !== 1 ? "s" : ""}
+                  {filters.searchTerm && ` para "${filters.searchTerm}"`}
+                </p>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                {filteredProducts.map((product) => (
+                  <ProductCard key={product.id} product={product} userId={userId} />
+                ))}
+              </div>
+            </>
+          )}
+        </main>
+      </div>
     </div>
   )
 }
